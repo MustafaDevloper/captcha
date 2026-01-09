@@ -1,12 +1,11 @@
-(() => {
+document.addEventListener("DOMContentLoaded", () => {
 
   const site = document.getElementById("site-content");
   if (!site) return;
 
-  /* ANA SİTEYİ KİLİTLE */
+  // HER ZAMAN KİLİTLE
   site.style.display = "none";
 
-  /* CAPTCHA EKRANI */
   const overlay = document.createElement("div");
   overlay.innerHTML = `
     <div style="
@@ -18,7 +17,7 @@
       justify-content:center;
       font-family:Arial;
       color:white;
-      z-index:9999;
+      z-index:999999;
     ">
       <div style="
         background:#1e1e1e;
@@ -40,14 +39,13 @@
 
   const slider = overlay.querySelector("#captcha-slider");
   const status = overlay.querySelector("#captcha-status");
-  const startTime = Date.now();
+  const start = Date.now();
 
   slider.addEventListener("input", () => {
-    const value = slider.value;
-    const time = Date.now() - startTime;
+    if (slider.value >= 95) {
 
-    if (value >= 95) {
-      if (time < 1200) {
+      // BOT ÖNLEMİ: çok hızlıysa reddet
+      if (Date.now() - start < 1000) {
         status.textContent = "Çok hızlı, tekrar dene";
         slider.value = 0;
         return;
@@ -58,15 +56,8 @@
       setTimeout(() => {
         overlay.remove();
         site.style.display = "block";
-        sessionStorage.setItem("captcha_ok", "1");
-      }, 500);
+      }, 300);
     }
   });
 
-  /* SAYFA YENİLENİRSE */
-  if (sessionStorage.getItem("captcha_ok") === "1") {
-    overlay.remove();
-    site.style.display = "block";
-  }
-
-})();
+});
