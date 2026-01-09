@@ -1,63 +1,87 @@
-document.addEventListener("DOMContentLoaded", () => {
+(function() {
+    const siteConfig = {
+        difficulty: 4, // 5 yaparsan botlar için çok daha zor olur
+        targetElement: "my-secure-captcha"
+    };
 
-  const site = document.getElementById("site-content");
-  if (!site) return;
+    window.onload = function() {
+        const container = document.getElementById(siteConfig.targetElement);
+        if (!container) return;
 
-  // HER ZAMAN KİLİTLE
-  site.style.display = "none";
+        // Şık ve profesyonel UI
+        container.innerHTML = `
+            <div id="captcha-container" style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 15px; width: fit-content; background: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="captcha-check-wrapper" style="position: relative; width: 24px; height: 24px;">
+                        <input type="checkbox" id="user-verify-checkbox" style="width: 24px; height: 24px; cursor: pointer;">
+                    </div>
+                    <span id="captcha-status-text" style="color: #333; font-weight: 500;">Güvenlik Kontrolü</span>
+                </div>
+                <div id="pow-progress" style="width: 0%; height: 3px; background: #4CAF50; margin-top: 10px; transition: width 0.5s; border-radius: 2px;"></div>
+            </div>
+        `;
 
-  const overlay = document.createElement("div");
-  overlay.innerHTML = `
-    <div style="
-      position:fixed;
-      inset:0;
-      background:#0f0f0f;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-family:Arial;
-      color:white;
-      z-index:999999;
-    ">
-      <div style="
-        background:#1e1e1e;
-        padding:30px;
-        border-radius:12px;
-        width:320px;
-        text-align:center;
-      ">
-        <h2>Güvenlik Doğrulaması</h2>
-        <p>Ben robot değilim</p>
+        const checkbox = document.getElementById('user-verify-checkbox');
+        const statusText = document.getElementById('captcha-status-text');
+        const progress = document.getElementById('pow-progress');
+        let interactionStart = Date.now();
 
-        <input id="captcha-slider" type="range" min="0" max="100" value="0" style="width:100%">
-        <div id="captcha-status" style="margin-top:10px;font-size:14px"></div>
-      </div>
-    </div>
-  `;
+        checkbox.addEventListener('change', async function(e) {
+            if (this.checked) {
+                this.disabled = true;
+                statusText.innerText = "Doğrulanıyor...";
+                progress.style.width = "50%";
 
-  document.body.appendChild(overlay);
+                // --- GÜVENLİK KONTROLÜ 1: Hız Kontrolü ---
+                const duration = Date.now() - interactionStart;
+                if (duration < 500) { // Yarım saniyeden kısa sürede tıklanmışsa bottur
+                    failCaptcha("Çok hızlı!");
+                    return;
+                }
 
-  const slider = overlay.querySelector("#captcha-slider");
-  const status = overlay.querySelector("#captcha-status");
-  const start = Date.now();
+                // --- GÜVENLİK KONTROLÜ 2: Proof of Work (SHA-256 simülasyonu) ---
+                const startPow = performance.now();
+                let work = 0;
+                for (let i = 0; i < Math.pow(10, siteConfig.difficulty); i++) {
+                    work += Math.sqrt(i); // İşlemciyi yor
+                }
+                const endPow = performance.now();
 
-  slider.addEventListener("input", () => {
-    if (slider.value >= 95) {
+                // --- GÜVENLİK KONTROLÜ 3: Mouse Hareket Analizi ---
+                if (e.clientX === 0 && e.clientY === 0) { // Koordinat yoksa bottur
+                     failCaptcha("Cihaz hatası!");
+                     return;
+                }
 
-      // BOT ÖNLEMİ: çok hızlıysa reddet
-      if (Date.now() - start < 1000) {
-        status.textContent = "Çok hızlı, tekrar dene";
-        slider.value = 0;
-        return;
-      }
+                // Başarılı Sonuç
+                setTimeout(() => {
+                    progress.style.width = "100%";
+                    statusText.innerText = "İnsan Olduğunuz Onaylandı";
+                    statusText.style.color = "#2E7D32";
+                    container.style.borderColor = "#4CAF50";
+                    
+                    // Formu serbest bırak
+                    const token = btoa("SECURE_" + Date.now() + "_" + work);
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = "my-captcha-token";
+                    input.value = token;
+                    container.appendChild(input);
+                    
+                    // Submit butonunu bul ve aç
+                    const form = container.closest('form');
+                    if (form) {
+                        const btn = form.querySelector('button[type="submit"]');
+                        if (btn) btn.disabled = false;
+                    }
+                }, 600);
+            }
+        });
 
-      status.textContent = "Doğrulandı";
-
-      setTimeout(() => {
-        overlay.remove();
-        site.style.display = "block";
-      }, 300);
-    }
-  });
-
-});
+        function failCaptcha(msg) {
+            statusText.innerText = msg;
+            statusText.style.color = "red";
+            setTimeout(() => location.reload(), 2000);
+        }
+    };
+})();
